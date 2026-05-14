@@ -18,9 +18,10 @@ src/
 ├── lib/                  # portable business logic
 │   ├── ci.ts             # findRun, watchRun, listRuns
 │   ├── ci-helpers.ts     # CIJob, findRetryDelay, formatProgress
+│   ├── config.ts         # config loading and normalization
 │   ├── release.ts        # findReleasePR, mergeReleasePR, watchRelease
 │   ├── issue.ts          # closeIssue
-│   ├── github.ts         # gh(), ghJson(), detectRepo()
+│   ├── github.ts         # gh(), ghJson(), git(), detectRepo()
 │   └── process.ts        # runCommand(), sleep()
 └── progress.ts           # maps onProgress → Pi onUpdate
 ```

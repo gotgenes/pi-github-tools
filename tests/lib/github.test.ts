@@ -6,7 +6,13 @@ vi.mock("../../src/lib/process", () => ({
   runCommand: mockRunCommand,
 }));
 
-import { detectRepo, gh, ghJson, resetRepoCache } from "../../src/lib/github";
+import {
+  detectRepo,
+  gh,
+  ghJson,
+  git,
+  resetRepoCache,
+} from "../../src/lib/github";
 
 beforeEach(() => {
   mockRunCommand.mockReset();
@@ -49,6 +55,33 @@ describe("ghJson", () => {
     });
     const result = await ghJson<{ id: number }>("issue", "view", "1");
     expect(result).toEqual({ id: 42 });
+  });
+});
+
+describe("git", () => {
+  it("returns trimmed stdout on success", async () => {
+    mockRunCommand.mockResolvedValue({
+      stdout: "  abc1234\n",
+      stderr: "",
+      exitCode: 0,
+    });
+    const result = await git("rev-parse", "HEAD");
+    expect(result).toBe("abc1234");
+    expect(mockRunCommand).toHaveBeenCalledWith({
+      cmd: "git",
+      args: ["rev-parse", "HEAD"],
+    });
+  });
+
+  it("throws on non-zero exit code", async () => {
+    mockRunCommand.mockResolvedValue({
+      stdout: "",
+      stderr: "fatal: not a git repository",
+      exitCode: 128,
+    });
+    await expect(git("rev-parse", "HEAD")).rejects.toThrow(
+      /git rev-parse HEAD failed \(exit 128\)/,
+    );
   });
 });
 

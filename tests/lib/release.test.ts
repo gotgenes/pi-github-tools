@@ -28,7 +28,7 @@ function mockGhJson(value: unknown) {
   });
 }
 
-function mockGh(stdout: string) {
+function mockCmd(stdout: string) {
   mockRunCommand.mockResolvedValueOnce({
     stdout,
     stderr: "",
@@ -73,7 +73,7 @@ describe("findReleasePR", () => {
 });
 
 describe("mergeReleasePR", () => {
-  it("merges a clean PR and pulls", async () => {
+  function setupMergeMocks() {
     // gh pr view (check state)
     mockGhJson({
       number: 42,
@@ -82,7 +82,7 @@ describe("mergeReleasePR", () => {
       mergeStateStatus: "CLEAN",
     });
     // gh pr merge
-    mockGh("merged");
+    mockCmd("merged");
     // git pull --ff-only
     mockRunCommand.mockResolvedValueOnce({
       stdout: "Already up to date.\n",
@@ -90,12 +90,51 @@ describe("mergeReleasePR", () => {
       exitCode: 0,
     });
     // git rev-parse HEAD
-    mockGh("abc1234567890");
+    mockRunCommand.mockResolvedValueOnce({
+      stdout: "abc1234567890\n",
+      stderr: "",
+      exitCode: 0,
+    });
+  }
+
+  it("omits strategy flag when no method is specified", async () => {
+    setupMergeMocks();
 
     const result = await mergeReleasePR({ prNumber: 42 });
     expect(result.isError).toBe(false);
     expect(result.content).toContain("Merged PR #42");
     expect(result.content).toContain("abc1234");
+
+    expect(mockRunCommand).toHaveBeenNthCalledWith(2, {
+      cmd: "gh",
+      args: ["pr", "merge", "42"],
+    });
+    expect(mockRunCommand).toHaveBeenNthCalledWith(3, {
+      cmd: "git",
+      args: ["pull", "--ff-only"],
+    });
+    expect(mockRunCommand).toHaveBeenNthCalledWith(4, {
+      cmd: "git",
+      args: ["rev-parse", "HEAD"],
+    });
+  });
+
+  it("uses --squash when method is squash", async () => {
+    setupMergeMocks();
+    await mergeReleasePR({ prNumber: 42, method: "squash" });
+    expect(mockRunCommand).toHaveBeenNthCalledWith(2, {
+      cmd: "gh",
+      args: ["pr", "merge", "42", "--squash"],
+    });
+  });
+
+  it("uses --merge when method is merge", async () => {
+    setupMergeMocks();
+    await mergeReleasePR({ prNumber: 42, method: "merge" });
+    expect(mockRunCommand).toHaveBeenNthCalledWith(2, {
+      cmd: "gh",
+      args: ["pr", "merge", "42", "--merge"],
+    });
   });
 
   it("returns error when PR is not mergeable", async () => {
@@ -115,17 +154,35 @@ describe("mergeReleasePR", () => {
 describe("watchRelease", () => {
   it("returns when a tag is found on HEAD", async () => {
     // git tag --points-at HEAD
-    mockGh("v1.2.0\n");
+    mockRunCommand.mockResolvedValueOnce({
+      stdout: "v1.2.0\n",
+      stderr: "",
+      exitCode: 0,
+    });
     // git rev-parse HEAD
-    mockGh("abc1234567890");
+    mockRunCommand.mockResolvedValueOnce({
+      stdout: "abc1234567890\n",
+      stderr: "",
+      exitCode: 0,
+    });
 
     const result = await watchRelease({ timeout: 120 });
     expect(result).toContain("v1.2.0");
+
+    // Must use git not gh for both calls
+    expect(mockRunCommand).toHaveBeenNthCalledWith(1, {
+      cmd: "git",
+      args: ["tag", "--points-at", "HEAD"],
+    });
+    expect(mockRunCommand).toHaveBeenNthCalledWith(2, {
+      cmd: "git",
+      args: ["rev-parse", "HEAD"],
+    });
   });
 
   it("returns timeout when no tag appears", async () => {
     // No tags on first poll
-    mockGh("\n");
+    mockCmd("\n");
 
     const result = await watchRelease({ timeout: 0 });
     expect(result).toContain("timeout:");

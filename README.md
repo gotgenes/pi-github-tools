@@ -74,11 +74,18 @@ Returns PR number, title, head branch, mergeable status, and URL.
 #### `release_pr_merge`
 
 Merge a release-please PR after confirming it is clean.
-Checks `MERGEABLE` + `CLEAN` status, merges with `--rebase`, and runs `git pull --ff-only`.
+Checks `MERGEABLE` + `CLEAN` status, merges, and runs `git pull --ff-only`.
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `pr_number` | number | yes | The PR number to merge |
+| `method` | string | no | Merge strategy: `"rebase"`, `"squash"`, or `"merge"` |
+
+Merge method precedence (highest to lowest):
+
+1. Explicit `method` parameter
+2. `defaultMergeMethod` from [configuration](#configuration)
+3. `gh` CLI default (merge commit, or your repo's configured default)
 
 Returns merge confirmation with new HEAD SHA, or a structured error if not mergeable.
 
@@ -120,6 +127,30 @@ A typical CI + release flow using these tools:
 8. Use issue_close to close the shipped issue.
 ```
 
+## Configuration
+
+Optional JSON config files control default behavior.
+Two locations are supported — project config takes precedence over global:
+
+| Scope | Path |
+| --- | --- |
+| Global | `~/.pi/extensions/@gotgenes/pi-github-tools/config.json` |
+| Project | `.pi/extensions/@gotgenes/pi-github-tools/config.json` |
+
+### Options
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `defaultMergeMethod` | `"rebase"` \| `"squash"` \| `"merge"` | — (`gh` default) | Default merge strategy for `release_pr_merge` |
+
+### Example
+
+```json
+{
+  "defaultMergeMethod": "squash"
+}
+```
+
 ## Architecture
 
 Portable business logic in `src/lib/` — no Pi SDK imports.
@@ -134,9 +165,10 @@ src/
 └── lib/                  # portable business logic
     ├── ci.ts             # findRun, watchRun, listRuns
     ├── ci-helpers.ts     # CIJob, findRetryDelay, formatProgress
+    ├── config.ts         # config loading and normalization
     ├── release.ts        # findReleasePR, mergeReleasePR, watchRelease
     ├── issue.ts          # closeIssue
-    ├── github.ts         # gh(), ghJson(), detectRepo()
+    ├── github.ts         # gh(), ghJson(), git(), detectRepo()
     └── process.ts        # runCommand(), sleep()
 ```
 

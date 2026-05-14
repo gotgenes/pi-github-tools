@@ -37,6 +37,23 @@ export async function gh(...args: string[]): Promise<string> {
 }
 
 /**
+ * Run a `git` command and return stdout as a trimmed string.
+ * Throws on non-zero exit.
+ */
+export async function git(...args: string[]): Promise<string> {
+  const { stdout, stderr, exitCode } = await runCommand({
+    cmd: "git",
+    args,
+  });
+  if (exitCode !== 0) {
+    throw new Error(
+      `git ${args.join(" ")} failed (exit ${exitCode}): ${stderr.trim()}`,
+    );
+  }
+  return stdout.trim();
+}
+
+/**
  * Run a `gh` CLI command and parse stdout as JSON.
  * Throws on non-zero exit or invalid JSON.
  */
@@ -71,11 +88,8 @@ export async function detectRepo(): Promise<RepoInfo> {
     // Fall back to git remote
   }
 
-  const { stdout } = await runCommand({
-    cmd: "git",
-    args: ["remote", "get-url", "origin"],
-  });
-  const match = stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)/);
+  const remoteUrl = await git("remote", "get-url", "origin");
+  const match = remoteUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
   if (!match) {
     throw new Error("Could not detect GitHub repository from git remote");
   }

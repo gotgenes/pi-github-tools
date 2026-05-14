@@ -8,8 +8,11 @@
  */
 
 import { findRetryDelay } from "./ci-helpers";
-import { gh, ghJson } from "./github";
-import { runCommand, sleep } from "./process";
+import type { MergeMethod } from "./config";
+import { gh, ghJson, git } from "./github";
+import { sleep } from "./process";
+
+export type { MergeMethod };
 
 interface ReleasePR {
   number: number;
@@ -98,6 +101,7 @@ export async function findReleasePR(args: FindReleasePRArgs): Promise<string> {
 
 export interface MergeReleasePRArgs {
   prNumber: number;
+  method?: MergeMethod;
 }
 
 export async function mergeReleasePR(
@@ -125,11 +129,15 @@ export async function mergeReleasePR(
     };
   }
 
-  await gh("pr", "merge", String(prNumber), "--rebase");
+  const mergeArgs = ["pr", "merge", String(prNumber)];
+  if (args.method) {
+    mergeArgs.push(`--${args.method}`);
+  }
+  await gh(...mergeArgs);
 
-  await runCommand({ cmd: "git", args: ["pull", "--ff-only"] });
+  await git("pull", "--ff-only");
 
-  const headSha = await gh("rev-parse", "HEAD");
+  const headSha = await git("rev-parse", "HEAD");
 
   return {
     content: [
@@ -156,7 +164,7 @@ export async function watchRelease(args: WatchReleaseArgs): Promise<string> {
   let elapsed = 0;
 
   while (true) {
-    const tagOutput = await gh("tag", "--points-at", "HEAD");
+    const tagOutput = await git("tag", "--points-at", "HEAD");
     const tags = tagOutput
       .split("\n")
       .map((t) => t.trim())
@@ -164,7 +172,7 @@ export async function watchRelease(args: WatchReleaseArgs): Promise<string> {
 
     if (tags.length > 0) {
       const tag = tags[tags.length - 1]; // most recent tag
-      const headSha = await gh("rev-parse", "HEAD");
+      const headSha = await git("rev-parse", "HEAD");
       return [
         `tag: ${tag}`,
         `version: ${tag.replace(/^v/, "")}`,
