@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const EXTENSION_ID = "@gotgenes/pi-github-tools";
+export const EXTENSION_ID = "pi-github-tools";
 
 export const MERGE_METHODS = ["rebase", "squash", "merge"] as const;
 export type MergeMethod = (typeof MERGE_METHODS)[number];

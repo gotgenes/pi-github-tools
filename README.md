@@ -136,8 +136,8 @@ Two locations are supported — project config takes precedence over global:
 
 | Scope | Path |
 | --- | --- |
-| Global | `~/.pi/agent/extensions/@gotgenes/pi-github-tools/config.json` |
-| Project | `.pi/extensions/@gotgenes/pi-github-tools/config.json` |
+| Global | `~/.pi/agent/extensions/pi-github-tools/config.json` |
+| Project | `.pi/extensions/pi-github-tools/config.json` |
 
 ### Options
 
