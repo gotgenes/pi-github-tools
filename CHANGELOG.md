@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/gotgenes/pi-github-tools/compare/v3.0.0...v3.1.0) (2026-05-15)
+
+
+### Features
+
+* add ship-issue prompt template ([63cbe2d](https://github.com/gotgenes/pi-github-tools/commit/63cbe2dd16ecc7563292cc611ae35c7b2d167697))
+
 ## [3.0.0](https://github.com/gotgenes/pi-github-tools/compare/v2.0.0...v3.0.0) (2026-05-15)
 
 
